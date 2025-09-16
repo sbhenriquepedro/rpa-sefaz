@@ -87,7 +87,7 @@ export function scheduleDownloadNoteJob(): void {
     } else if (env.SCHEDULE_DOWNLOAD_NOTE && isValidCron(env.SCHEDULE_DOWNLOAD_NOTE)) {
         scheduleExpression = env.SCHEDULE_DOWNLOAD_NOTE
     } else {
-        scheduleExpression = '0 8,12,16 * * *'
+        scheduleExpression = '0 */3 * * *'
     }
 
     logger.info(`Agendamento definido para downloadNoteJob: ${scheduleExpression}`)
