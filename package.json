@@ -4,8 +4,11 @@
     "description": "RPA automatizado que acessa o portal da SEFAZ com certificado digital para consultar e baixar NF-e. Gerencia fila de requisições, executa downloads via Playwright e garante segurança, agilidade e conformidade fiscal, reduzindo erros e otimizando processos.",
     "main": "dist/index.js",
     "scripts": {
-        "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts",
+        "dev:queueNoteJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- queueNoteJob",
+        "dev:downloadNoteJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- downloadNoteJob",
         "build": "tsup",
+        "start:queueNoteJob": "node dist/index.ts -- queueNoteJob",
+        "start:downloadNoteJob": "node dist/index.ts -- downloadNoteJob",
         "start": "node -r tsconfig-paths/register dist/index.js",
         "install": "npx playwright install"
     },
@@ -20,11 +23,13 @@
         "node-cron": "^4.2.1",
         "playwright": "^1.55.0",
         "ts-node": "^10.9.2",
-        "winston": "^3.17.0"
+        "winston": "^3.17.0",
+        "yargs": "^17.7.2"
     },
     "devDependencies": {
         "@types/mongoose": "^5.11.96",
         "@types/node": "^24.4.0",
+        "@types/yargs": "^17.0.33",
         "ts-node-dev": "^2.0.0",
         "tsconfig-paths": "^4.2.0",
         "tsup": "^8.5.0",

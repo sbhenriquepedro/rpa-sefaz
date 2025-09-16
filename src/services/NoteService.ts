@@ -421,29 +421,10 @@ class NoteService {
             ])
 
             const url = download.url()
-
-            if (url) {
-                logger.info(`URL do download: ${url}`)
-
-                await Note.findOneAndUpdate(
-                    {
-                        company: this.note.company,
-                        modelNote: this.note.modelNote,
-                        sitNote: this.note.sitNote,
-                        initialPeriod: this.note.initialPeriod,
-                        finalPeriod: this.note.finalPeriod,
-                    },
-                    {
-                        linkDownload: url,
-                        queued: true,
-                    },
-                    { upsert: true, new: true }
-                )
-            }
-
             const { file } = await this.extractFirstRowTable()
 
-            if (file) {
+            if (url && file) {
+                logger.info(`URL do download: ${url}`)
                 logger.info(`Nome do arquivo: ${file}`)
 
                 await Note.findOneAndUpdate(
@@ -456,6 +437,30 @@ class NoteService {
                     },
                     {
                         fileName: file,
+                        linkDownload: url,
+                        queued: true,
+                    },
+                    { upsert: true, new: true }
+                )
+            } else {
+                this.continue = false
+                logger.warn('Não foi possível obter a URL ou o nome do arquivo para download.')
+
+                const screenshotPath = this.getStructure(true)
+                const screenshot = await this.screenshot(screenshotPath)
+                
+                await Note.findOneAndUpdate(
+                    {
+                        company: this.note.company,
+                        modelNote: this.note.modelNote,
+                        sitNote: this.note.sitNote,
+                        initialPeriod: this.note.initialPeriod,
+                        finalPeriod: this.note.finalPeriod,
+                    },
+                    {
+                        screenshot,
+                        statusNote: 'Error',
+                        warn: `Não foi possível obter a URL ou o nome do arquivo para download.`,
                     },
                     { upsert: true, new: true }
                 )
@@ -490,7 +495,7 @@ class NoteService {
     async getDownloadLink(): Promise<void> {
         await Note.findOneAndUpdate(
             {
-                company: this.note.company,
+                
                 modelNote: this.note.modelNote,
                 sitNote: this.note.sitNote,
                 initialPeriod: this.note.initialPeriod,
@@ -515,11 +520,92 @@ class NoteService {
         await this.search()
         await this.checkIfNoResult()
         await this.addToDownloadQueue()
-        
-        await this.page.pause()
 
         await this.page.close()
         await this.browser.close()
+    }
+
+    private async conferenceScreenshot(): Promise<string> {
+        await this.page.keyboard.press('End')
+        const screenshotPath = this.getStructure(true)
+        const screenshot = await this.screenshot(screenshotPath)
+        return screenshot
+    }
+
+    async downloadFile() {
+        this.browser = await chromium.launch({ headless: false, slowMo: 500, })
+        this.context = await this.browser.newContext({ ignoreHTTPSErrors: true, acceptDownloads: true })
+        this.page = await this.context.newPage()
+        
+        try {
+            if (!this.note.linkDownload) {
+                logger.info('Link de download não disponível.')
+                return
+            }
+
+            await this.page.goto(this.note.linkDownload, { waitUntil: 'domcontentloaded' })
+
+            // Aguarda a tabela estar visível
+            await this.page.waitForSelector('table.tablesorter tbody tr')
+
+            let line
+
+            if (this.note.fileName) {
+                // Localiza a linha que contém o nome do arquivo
+                line = this.page.locator(`table.tablesorter tbody tr:has(td.col-arquivo:has-text("${this.note.fileName}"))`)
+                if (await line.count() === 0) {
+                    logger.info(`Arquivo "${this.note.fileName}" não encontrado na tabela.`)
+                    return null
+                }
+            } else {
+                // Se não passar o nome, pega a primeira linha
+                line = this.page.locator('table.tablesorter tbody tr').first()
+            }
+
+            // Pega o link de download
+            const linkDownload = await line.locator('.col-acoes a.btn-info').getAttribute('href')
+
+            if (!linkDownload) {
+                logger.info(`Arquivo ${this.note.fileName || '(primeira linha)'} encontrado, mas sem link de download.`)
+                return null
+            }
+
+            // Configura o listener para o evento de download
+            const [download] = await Promise.all([
+                this.page.waitForEvent('download'),
+                line.locator('.col-acoes a.btn-info').click() // clica no botão de download
+            ])
+
+            const pathRelativeNote = this.getStructure()
+            const filename = download.suggestedFilename() || ''
+            const pathRelativeAbsolute = path.resolve(path.join(pathRelativeNote, filename))
+
+            await download.saveAs(pathRelativeAbsolute)
+
+            if (fs.existsSync(pathRelativeAbsolute)) {
+                const conferenceScreenshotPath = await this.conferenceScreenshot()
+
+                logger.info(conferenceScreenshotPath)
+                logger.info('Download realizado com sucesso.')
+
+                await Note.findOneAndUpdate({
+                    company: this.note.company,
+                    modelNote: this.note.modelNote,
+                    sitNote: this.note.sitNote,
+                    initialPeriod: this.note.initialPeriod,
+                    finalPeriod: this.note.finalPeriod,
+                }, {
+                    screenshot: conferenceScreenshotPath,
+                    filePath: pathRelativeAbsolute,
+                    statusNote: 'Success',
+                }, { upsert: true, new: true })
+            }
+
+            logger.info(pathRelativeAbsolute)
+        } finally {
+            await this.page.close()
+            await this.browser.close()
+        }
     }
 }
 

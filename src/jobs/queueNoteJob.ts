@@ -95,22 +95,28 @@ async function processCompany(company: ICompany, status: StatusNote[] = ['Pendin
     }
 }
 
-export function scheduleProcessCompanyJob(): void {
+export function scheduleQueueNoteJob(): void {
     let scheduleExpression: string
 
     if (env.INSTANTLY === 'true') {
         const now = new Date()
-        const min = now.getMinutes() + 1
-        const hour = now.getHours()
+        let min = now.getMinutes() + 1
+        let hour = now.getHours()
+
+        // Garantir que os valores de minuto e hora estejam dentro dos limites válidos
+        if (min >= 60) {
+            min = 0
+            hour = (hour + 1) % 24 // Incrementa a hora e garante que não ultrapasse 23
+        }
 
         scheduleExpression = `${min} ${hour} * * *`
-    } else if (env.SCHEDULE_PROCESS_COMPANY && isValidCron(env.SCHEDULE_PROCESS_COMPANY)) {
-        scheduleExpression = env.SCHEDULE_PROCESS_COMPANY
+    } else if (env.SCHEDULE_QUEUE_NOTE_DOWNLOAD && isValidCron(env.SCHEDULE_QUEUE_NOTE_DOWNLOAD)) {
+        scheduleExpression = env.SCHEDULE_QUEUE_NOTE_DOWNLOAD
     } else {
         scheduleExpression = '0 8,12,16 * * *'
     }
 
-    logger.info(`Agendamento definido para processCompanyJob: ${scheduleExpression}`)
+    logger.info(`Agendamento definido para queueNoteJob: ${scheduleExpression}`)
 
     cron.schedule(scheduleExpression, async () => {
         try {
@@ -124,7 +130,7 @@ export function scheduleProcessCompanyJob(): void {
             logger.info('********************************')
             logger.info('Processamento concluído.')
         } catch (error) {
-            logger.error(`Erro no agendamento processCompanyJob.`)
+            logger.error(`Erro no agendamento queueNoteJob.`)
         }
     })
 }
