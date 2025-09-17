@@ -68,27 +68,37 @@ async function processCompany(company: ICompany, status: StatusNote[] = ['Pendin
     for (const modelNote of MODEL_NOTES) {
         for (const sitNote of SITUATION_NOTES) {
             for (const { initialPeriod, finalPeriod } of PERIODS) {
-                const note = await Note.findOne({
-                    company: company._id,
-                    modelNote,
-                    sitNote,
-                    initialPeriod,
-                    finalPeriod,
-                }).populate('company')
-
-                logger.info('********************************')
-                
-                if (note != null && note.queued !== true && status.includes(note.statusNote)) {
-                    logger.info(`Processando empresa: ${company.name} (${company.codeCompanieAccountSystem}),`)
-                    logger.info(`Modelo: ${modelNote},`)
-                    logger.info(`Situacao: ${sitNote},`)
-                    logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
-
-                    await ApiPfxManager.clearCertificates()
-                    await ApiPfxManager.installCertificate(company.federalRegistration)
-                    await new NoteService(note).getDownloadLink()
-                } else {
-                    logger.info(`Nenhuma nota para processar para a empresa ${company.name} (${company.codeCompanieAccountSystem}), modelo ${modelNote}, situação ${sitNote}, período ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}. Pulando...`)
+                try {
+                    const note = await Note.findOne({
+                        company: company._id,
+                        modelNote,
+                        sitNote,
+                        initialPeriod,
+                        finalPeriod,
+                    }).populate('company')
+    
+                    logger.info('********************************')
+                    
+                    if (note != null && note.queued !== true && status.includes(note.statusNote)) {
+                        logger.info(`Processando empresa: ${company.name} (${company.codeCompanieAccountSystem}),`)
+                        logger.info(`Modelo: ${modelNote},`)
+                        logger.info(`Situacao: ${sitNote},`)
+                        logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
+    
+                        await ApiPfxManager.clearCertificates()
+                        
+                        if (company.federalRegistration) {
+                            await ApiPfxManager.installCertificate(company.federalRegistration)
+                            await new NoteService(note).getDownloadLink()
+                        } else {
+                            logger.error(`Empresa ${company.name} (${company.codeCompanieAccountSystem}) não possui CNPJ. Pulando...`)
+                        }
+                    } else {
+                        logger.info(`Nenhuma nota para processar para a empresa ${company.name} (${company.codeCompanieAccountSystem}), modelo ${modelNote}, situação ${sitNote}, período ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}. Pulando...`)
+                    }
+                } catch (error) {
+                    logger.error(`Erro ao processar a empresa ${company.name} (${company.codeCompanieAccountSystem}), modelo ${modelNote}, situação ${sitNote}, período ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
+                    console.error(error)   
                 }
             }
         }
