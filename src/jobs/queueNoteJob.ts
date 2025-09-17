@@ -86,10 +86,11 @@ async function processCompany(company: ICompany, status: StatusNote[] = ['Pendin
                         logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
     
                         await ApiPfxManager.clearCertificates()
-                        
+
                         if (company.federalRegistration) {
-                            await ApiPfxManager.installCertificate(company.federalRegistration)
-                            await new NoteService(note).getDownloadLink()
+                            const isCertificate = await ApiPfxManager.installCertificate(company.federalRegistration)
+                            if (isCertificate) await new NoteService(note).getDownloadLink()
+                            else logger.error(`Falha ao instalar o certificado para a empresa ${company.name} (${company.codeCompanieAccountSystem}). Pulando...`)
                         } else {
                             logger.error(`Empresa ${company.name} (${company.codeCompanieAccountSystem}) não possui CNPJ. Pulando...`)
                         }

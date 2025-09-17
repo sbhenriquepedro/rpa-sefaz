@@ -52,12 +52,21 @@ class ApiPfxManager {
         }
     }
 
-    async installCertificate(cnpj: string): Promise<void> {
+    async installCertificate(cnpj: string): Promise<boolean> {
         try {
             const response = await this.apiClient.post('/certificates/install', { cnpj })
-            logger.info(response.data.message || 'Certificado instalado com sucesso.')
+            if (response.status === 200) {
+                logger.info(response.data.message || 'Certificado instalado com sucesso.')
+                return true
+            }
+            return false
         } catch (error) {
-            logger.error(`Erro ao instalar certificado: ${error}`)
+            if (axios.isAxiosError(error) && error.response?.status === 404) {
+                logger.error(`Certificado não encontrado para o CNPJ ${cnpj}.`)
+            } else {
+                logger.error(`Erro ao instalar certificado: ${error}`)
+            }
+            return false
         }
     }
 
