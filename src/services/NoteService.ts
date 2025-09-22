@@ -299,10 +299,8 @@ class NoteService {
         if (!this.continue) return
 
         try {
-            const timeout = this.getTimoutCTe()
-
             const [newTab] = await Promise.all([
-                this.page.waitForEvent('domcontentloaded', { timeout }),
+                this.page.waitForEvent('domcontentloaded', { timeout: 1000 * 60 }),
                 this.page.getByRole('button', { name: 'Pesquisar' }).click(),
             ])
 
@@ -410,8 +408,7 @@ class NoteService {
         if (!this.continue) return
 
         try {
-            const timeout = this.getTimoutCTe()
-            await this.page.reload({ timeout })
+            await this.page.reload({ timeout: 1000 * 60 })
 
             await this.page.getByRole('button', { name: 'Baixar todos os arquivos' }).click()
 
@@ -420,7 +417,7 @@ class NoteService {
             await downloadButton.evaluate((button: HTMLButtonElement) => button.removeAttribute('disabled'))
 
             const [download] = await Promise.all([
-                this.page.waitForEvent('domcontentloaded', { timeout }),
+                this.page.waitForEvent('domcontentloaded', { timeout: 1000 * 60 }),
                 downloadButton.click(),
             ])
 
