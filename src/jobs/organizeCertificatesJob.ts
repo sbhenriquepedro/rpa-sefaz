@@ -1,8 +1,6 @@
 import cron from 'node-cron'
 import OrganizeCertificateService from '@services/OrganizeCertificateService'
 
-OrganizeCertificateService.start()
-
 export function organizeCertificatesJob() {
     cron.schedule('*/30 * * * *', async () => {
         try {
