@@ -415,9 +415,13 @@ class NoteService {
 
             await this.page.getByRole('button', { name: 'Baixar todos os arquivos' }).click()
 
+            const downloadButton = this.page.getByRole('button', { name: 'Baixar', exact: true });
+
+            await downloadButton.evaluate((button: HTMLButtonElement) => button.removeAttribute('disabled'))
+
             const [download] = await Promise.all([
                 this.page.waitForEvent('domcontentloaded', { timeout }),
-                this.page.getByRole('button', { name: 'Baixar', exact: true }).click(),
+                downloadButton.click(),
             ])
 
             const url = download.url()
