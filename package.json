@@ -6,11 +6,11 @@
     "scripts": {
         "dev:queueNoteJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- queueNoteJob",
         "dev:downloadNoteJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts -- downloadNoteJob",
-        "dev:organizeCertificatesJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/jobs/organizeCertificatesJob.ts",
+        "dev:organizeCertificatesJob": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/index.ts --organizeCertificatesJob",
         "build": "tsup",
         "start:queueNoteJob": "node dist/index.ts -- queueNoteJob",
         "start:downloadNoteJob": "node dist/index.ts -- downloadNoteJob",
-        "start:organizeCertificatesJob": "node dist/jobs/organizeCertificatesJob.js",
+        "start:organizeCertificatesJob": "node dist/index.js --organizeCertificatesJob",
         "start": "node -r tsconfig-paths/register dist/index.js",
         "install": "npx playwright install"
     },

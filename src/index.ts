@@ -6,6 +6,7 @@ import ApiPfxManager from '@utils/apiPfxManager'
 import { validateEnv } from '@utils/validateEnv'
 import { scheduleQueueNoteJob } from '@jobs/queueNoteJob'
 import { scheduleDownloadNoteJob } from '@jobs/downloadNoteJob'
+import { organizeCertificatesJob } from '@jobs/organizeCertificatesJob'
 
 const REQUIRED_ENV_VARS = ['API_PFX_MANAGER', 'STRUCTURE']
 
@@ -29,6 +30,9 @@ yargs(hideBin(process.argv))
     .command('downloadNoteJob', 'Executa o job de download de nota', {}, async () => {
         await main()
         scheduleDownloadNoteJob()
+    })
+    .command('organizeCertificatesJob', 'Executa o job de organizar certificados', {}, async () => {
+        organizeCertificatesJob()
     })
     .demandCommand(1, 'Você precisa especificar um job para executar.')
     .strict()
