@@ -1,4 +1,4 @@
-import { Document, Schema, model } from 'mongoose'
+import mongoose, { Document, Schema } from 'mongoose'
 
 export interface ICompany extends Document {
     codeCompanieAccountSystem: number
@@ -45,4 +45,5 @@ const CompanySchema: Schema = new Schema(
     { timestamps: true },
 )
 
-export default model<ICompany>('Company', CompanySchema)
+// Evita sobrescrever o model em hot reload/dev
+export default mongoose.models.Company || mongoose.model<ICompany>('Company', CompanySchema)

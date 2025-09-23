@@ -7,6 +7,7 @@ import { validateEnv } from '@utils/validateEnv'
 import { scheduleQueueNoteJob } from '@jobs/queueNoteJob'
 import { scheduleDownloadNoteJob } from '@jobs/downloadNoteJob'
 import { organizeCertificatesJob } from '@jobs/organizeCertificatesJob'
+import { exportNotes } from '@utils/exportNotes'
 
 const REQUIRED_ENV_VARS = ['API_PFX_MANAGER', 'STRUCTURE']
 
@@ -33,6 +34,11 @@ yargs(hideBin(process.argv))
     })
     .command('organizeCertificatesJob', 'Executa o job de organizar certificados', {}, async () => {
         organizeCertificatesJob()
+    })
+    .command('exportNotes', 'Exporta as notas para um arquivo Excel', {}, async () => {
+        await connectDB()
+        const exporter = new exportNotes()
+        await exporter.run()
     })
     .demandCommand(1, 'Você precisa especificar um job para executar.')
     .strict()
