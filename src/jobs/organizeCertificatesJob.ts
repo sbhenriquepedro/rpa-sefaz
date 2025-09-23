@@ -11,8 +11,5 @@ export async function organizeCertificatesJob(): Promise<void> {
             logger.error(`Erro ao organizar certificados: `)
             console.error(error)
         }
-
-        // espera 5 minutos antes da próxima iteração
-        await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 5))
     }
 }
