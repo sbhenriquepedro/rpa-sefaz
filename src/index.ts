@@ -33,7 +33,7 @@ yargs(hideBin(process.argv))
         await scheduleDownloadNoteJob()
     })
     .command('organizeCertificatesJob', 'Executa o job de organizar certificados', {}, async () => {
-        organizeCertificatesJob()
+        await organizeCertificatesJob()
     })
     .command('exportNotes', 'Exporta as notas para um arquivo Excel', {}, async () => {
         await connectDB()
