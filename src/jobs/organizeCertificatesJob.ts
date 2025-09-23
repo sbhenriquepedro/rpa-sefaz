@@ -1,12 +1,18 @@
-import cron from 'node-cron'
 import OrganizeCertificateService from '@services/OrganizeCertificateService'
+import logger from '@utils/logger'
 
-export function organizeCertificatesJob() {
-    cron.schedule('*/30 * * * *', async () => {
+export async function organizeCertificatesJob(): Promise<void> {
+    while (true) {
         try {
+            logger.info('Iniciando organização de certificados...')
             OrganizeCertificateService.start()
-        } catch (err) {
-            console.error('Erro ao organizar certificados:', err)
+            logger.info('Organização de certificados concluída.')
+        } catch (error) {
+            logger.error(`Erro ao organizar certificados: `)
+            console.error(error)
         }
-    })
+
+        // espera 5 minutos antes da próxima iteração
+        await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 5))
+    }
 }
