@@ -22,48 +22,46 @@ async function downloadNote(company: ICompany): Promise<void> {
 
     for (const modelNote of MODEL_NOTES) {
         for (const sitNote of SITUATION_NOTES) {
-            for (const { initialPeriod, finalPeriod } of PERIODS) {
-                try {
-                    const note = await Note.findOne({
-                        company: company._id,
-                        modelNote,
-                        sitNote,
-                        initialPeriod,
-                        finalPeriod
-                    }).populate('company')
-                    
-                    logger.info('********************************')
+            try {
+                const notes = await Note.find({
+                    company: company._id,
+                    modelNote,
+                    sitNote
+                }).populate('company')
 
+                for (const note of notes) {
+                    logger.info('********************************')
+    
                     if (note && note.queued && note.statusNote !== 'Success') {
                         logger.info(`Iniciando download da empresa: ${company.name} (${company.codeCompanieAccountSystem}),`)
                         logger.info(`Modelo: ${modelNote},`)
                         logger.info(`Situacao: ${sitNote},`)
-                        logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
-
+                        logger.info(`Periodo: ${note.initialPeriod.toLocaleDateString()} - ${note.finalPeriod.toLocaleDateString()}.`)
+    
                         await new NoteService(note).downloadFile()
                     } else if (!note || !note.queued) {
                         logger.info(`Sem link de download para a empresa: ${company.name} (${company.codeCompanieAccountSystem}),`)
                         logger.info(`Modelo: ${modelNote},`)
                         logger.info(`Situacao: ${sitNote},`)
-                        logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
+                        logger.info(`Periodo: ${note.initialPeriod.toLocaleDateString()} - ${note.finalPeriod.toLocaleDateString()}.`)
                         logger.info('Pulando...')
                     } else if (note.statusNote === 'Success') {
                         logger.info(`Nota já baixada com sucesso para a empresa: ${company.name} (${company.codeCompanieAccountSystem}),`)
                         logger.info(`Modelo: ${modelNote},`)
                         logger.info(`Situacao: ${sitNote},`)
-                        logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
+                        logger.info(`Periodo: ${note.initialPeriod.toLocaleDateString()} - ${note.finalPeriod.toLocaleDateString()}.`)
                         logger.info('Pulando...')
                     } else {
                         logger.info(`Nenhuma nota para processar para a empresa: ${company.name} (${company.codeCompanieAccountSystem}),`)
                         logger.info(`Modelo: ${modelNote},`)
                         logger.info(`Situacao: ${sitNote},`)
-                        logger.info(`Periodo: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}.`)
+                        logger.info(`Periodo: ${note.initialPeriod.toLocaleDateString()} - ${note.finalPeriod.toLocaleDateString()}.`)
                         logger.info('Pulando...')
                     }
-                } catch (error) {
-                    logger.error(`Erro ao realizar o download da empresa.`)
-                    console.error(error)
                 }
+            } catch (error) {
+                logger.error(`Erro ao realizar o download da empresa.`)
+                console.error(error)
             }
         }
     }
