@@ -4,7 +4,7 @@ export class OrganizeCertificateService {
     constructor() {}
 
     async start(): Promise<void> {
-        apiPfxManager.organizeCertificates()
+        await apiPfxManager.organizeCertificates()
     }
 }
 
