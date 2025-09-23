@@ -30,7 +30,7 @@ yargs(hideBin(process.argv))
     })
     .command('downloadNoteJob', 'Executa o job de download de nota', {}, async () => {
         await main()
-        scheduleDownloadNoteJob()
+        await scheduleDownloadNoteJob()
     })
     .command('organizeCertificatesJob', 'Executa o job de organizar certificados', {}, async () => {
         organizeCertificatesJob()

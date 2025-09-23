@@ -69,30 +69,8 @@ async function downloadNote(company: ICompany): Promise<void> {
     }
 }
 
-export function scheduleDownloadNoteJob(): void {
-    let scheduleExpression: string
-
-    if (env.INSTANTLY === 'true') {
-        const now = new Date()
-        let min = now.getMinutes() + 1
-        let hour = now.getHours()
-
-        // Garantir que os valores de minuto e hora estejam dentro dos limites válidos
-        if (min >= 60) {
-            min = 0
-            hour = (hour + 1) % 24 // Incrementa a hora e garante que não ultrapasse 23
-        }
-
-        scheduleExpression = `${min} ${hour} * * *`
-    } else if (env.SCHEDULE_DOWNLOAD_NOTE && isValidCron(env.SCHEDULE_DOWNLOAD_NOTE)) {
-        scheduleExpression = env.SCHEDULE_DOWNLOAD_NOTE
-    } else {
-        scheduleExpression = '0 */3 * * *'
-    }
-
-    logger.info(`Agendamento definido para downloadNoteJob: ${scheduleExpression}`)
-
-    cron.schedule(scheduleExpression, async () => {
+export async function scheduleDownloadNoteJob(): Promise<void> {
+    while (true) {
         try {
             const companies = await Company.find()
             logger.info(`Total de empresas encontradas: ${companies.length}`)
@@ -107,5 +85,8 @@ export function scheduleDownloadNoteJob(): void {
             logger.error(`Erro no agendamento downloadNoteJob: `)
             console.error(error)
         }
-    })
+
+        // espera 5 minutos antes da próxima iteração
+        await new Promise((resolve) => setTimeout(resolve, 1000 * 60 * 5))
+    }
 }
