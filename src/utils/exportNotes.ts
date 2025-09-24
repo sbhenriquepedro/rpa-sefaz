@@ -4,14 +4,50 @@ import Company from "@models/Company"
 import logger from "./logger"
 import fs from "fs"
 import path from "path"
+import { FilterQuery } from "mongoose"
+
+function buildPeriodFilter(): FilterQuery<typeof Note> {
+    const now = new Date()
+    let year = now.getFullYear()
+    let month = now.getMonth() + 1 // getMonth() retorna 0-11
+
+    // Se for dia 1 a 5, usar mês anterior
+    if (now.getDate() <= 5) {
+        month -= 1
+        if (month === 0) {
+            month = 12
+            year -= 1
+        }
+    }
+
+    return {
+        $expr: {
+            $and: [
+                { $eq: [{ $month: "$initialPeriod" }, month] },
+                { $eq: [{ $year: "$initialPeriod" }, year] },
+                { $eq: [{ $month: "$finalPeriod" }, month] },
+                { $eq: [{ $year: "$finalPeriod" }, year] },
+            ],
+        },
+    };
+}
+
+// Mapa de tradução dos status
+const statusMap: Record<string, string> = {
+    Success: "Sucesso",
+    Warning: "Aviso",
+    Error: "Erro",
+    Pending: "Pendente",
+    Processing: "Processando",
+}
 
 export class exportNotes {
     async run() {
         try {
             // Buscar todas as notas
-            const notes = await Note.find({
-                statusNote: "Success"
-            })
+            const filter = buildPeriodFilter()
+
+            const notes = await Note.find(filter)
     
             // Buscar todas as empresas referenciadas de uma vez só
             const companyIds = [...new Set(notes.map((note: any) => note.company?.toString()).filter(Boolean))]
@@ -23,6 +59,7 @@ export class exportNotes {
             const worksheet = workbook.addWorksheet("Notas")
     
             worksheet.columns = [
+                { header: "Código", key: "companyCodeCompanieAccountSystem", width: 15 },
                 { header: "Empresa", key: "companyName", width: 30 },
                 { header: "CNPJ", key: "companyCnpj", width: 20 },
                 { header: "Modelo", key: "modelNote", width: 10 },
@@ -37,11 +74,12 @@ export class exportNotes {
                 const company = note.company ? companyMap.get(note.company.toString()) : null
     
                 worksheet.addRow({
+                    companyCodeCompanieAccountSystem: company?.codeCompanieAccountSystem || "",
                     companyName: company?.name || "",
                     companyCnpj: company?.federalRegistration || company?.cnpj || "",
                     modelNote: note.modelNote || "",
                     sitNote: note.sitNote || "",
-                    statusNote: note.statusNote === "Success" ? "Sucesso" : (note.statusNote || ""),
+                    statusNote: statusMap[note.statusNote] || note.statusNote || "",
                     initialPeriod: note.initialPeriod
                         ? new Date(note.initialPeriod).toISOString().split("T")[0]
                         : "",
