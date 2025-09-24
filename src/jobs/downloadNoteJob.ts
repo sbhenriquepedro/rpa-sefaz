@@ -74,7 +74,7 @@ async function downloadNote(company: ICompany): Promise<void> {
 export async function scheduleDownloadNoteJob(): Promise<void> {
     while (true) {
         try {
-            const companies = await Company.find()
+            const companies = await Company.find({ status: "A" })
             logger.info(`Total de empresas encontradas: ${companies.length}`)
 
             for (const company of companies) {

@@ -131,7 +131,7 @@ export function scheduleQueueNoteJob(): void {
 
     cron.schedule(scheduleExpression, async () => {
         try {
-            const companies = await Company.find()
+            const companies = await Company.find({ status: "A" })
             logger.info(`Total de empresas encontradas: ${companies.length}`)
 
             for (const company of companies) {
