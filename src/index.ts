@@ -8,6 +8,7 @@ import { scheduleQueueNoteJob } from '@jobs/queueNoteJob'
 import { scheduleDownloadNoteJob } from '@jobs/downloadNoteJob'
 import { organizeCertificatesJob } from '@jobs/organizeCertificatesJob'
 import { exportNotes } from '@utils/exportNotes'
+import { AuditService } from '@services/AuditService'
 
 const REQUIRED_ENV_VARS = ['API_PFX_MANAGER', 'STRUCTURE']
 
@@ -39,6 +40,11 @@ yargs(hideBin(process.argv))
         await connectDB()
         const exporter = new exportNotes()
         await exporter.run()
+    })
+    .command('audit', 'Faz auditoria das notas', {}, async () => {
+        await connectDB()
+        const audit = new AuditService()
+        await audit.removeNotesFromInactiveCompanies()
     })
     .demandCommand(1, 'Você precisa especificar um job para executar.')
     .strict()
