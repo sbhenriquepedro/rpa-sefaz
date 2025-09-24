@@ -27,7 +27,8 @@ async function downloadNote(company: ICompany): Promise<void> {
                     company: company._id,
                     modelNote,
                     sitNote,
-                    linkDownload: { $exists: true, $ne: "" }
+                    linkDownload: { $exists: true, $ne: "" },
+                    statusNote: { $ne: "Success" }
                 }).populate('company')
 
                 for (const note of notes) {
