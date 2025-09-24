@@ -494,36 +494,63 @@ class NoteService {
     }
 
     async getDownloadLink(): Promise<void> {
-        await Note.findOneAndUpdate(
-            {
-                
-                modelNote: this.note.modelNote,
-                sitNote: this.note.sitNote,
-                initialPeriod: this.note.initialPeriod,
-                finalPeriod: this.note.finalPeriod,
-            },
-            {
-                statusNote: 'Processing',
-            },
-            { upsert: true, new: true }
-        )
+        try {
+            await Note.findOneAndUpdate(
+                {
+                    modelNote: this.note.modelNote,
+                    sitNote: this.note.sitNote,
+                    initialPeriod: this.note.initialPeriod,
+                    finalPeriod: this.note.finalPeriod,
+                },
+                {
+                    statusNote: 'Processing',
+                },
+                { upsert: true, new: true }
+            )
 
-        this.browser = await chromium.launch({ headless: false, slowMo: 500 })
-        this.context = await this.browser.newContext({ ignoreHTTPSErrors: true, acceptDownloads: true })
-        this.page = await this.context.newPage()
-        await this.page.goto("https://nfeweb.sefaz.go.gov.br/nfeweb/sites/nfe/consulta-publica", {
-            waitUntil: "domcontentloaded" 
-        })
+            this.browser = await chromium.launch({ headless: false, slowMo: 500 })
+            this.context = await this.browser.newContext({ ignoreHTTPSErrors: true, acceptDownloads: true })
+            this.page = await this.context.newPage()
+            
+            // O timeout padrão do goto é 30 segundos. Se o site estiver lento, pode ser necessário aumentar.
+            await this.page.goto("https://nfeweb.sefaz.go.gov.br/nfeweb/sites/nfe/consulta-publica", {
+                waitUntil: "domcontentloaded",
+                timeout: 60000 // Aumentado para 60 segundos
+            })
 
-        await this.checkIfNoCpfDataFound()
-        await this.insertForm()
-        await this.thowCaptcha()
-        await this.search()
-        await this.checkIfNoResult()
-        await this.addToDownloadQueue()
+            await this.checkIfNoCpfDataFound()
+            await this.insertForm()
+            await this.thowCaptcha()
+            await this.search()
+            await this.checkIfNoResult()
+            await this.addToDownloadQueue()
 
-        await this.page.close()
-        await this.browser.close()
+        } catch (error) {
+            // Um catch genérico para capturar erros inesperados (como o timeout do page.goto)
+            logger.error(`Erro inesperado no processo getDownloadLink: ${error}`)
+            await Note.findOneAndUpdate(
+                {
+                    company: this.note.company,
+                    modelNote: this.note.modelNote,
+                    sitNote: this.note.sitNote,
+                    initialPeriod: this.note.initialPeriod,
+                    finalPeriod: this.note.finalPeriod,
+                },
+                {
+                    statusNote: 'Error',
+                    warn: `Falha crítica no site do sefaz: ${error}`,
+                },
+                { upsert: true, new: true }
+            )
+        } finally {
+            logger.info("Finalizando processo getDownloadLink e fechando o navegador.")
+            if (this.page && !this.page.isClosed()) {
+                await this.page.close()
+            }
+            if (this.browser && this.browser.isConnected()) {
+                await this.browser.close()
+            }
+        }
     }
 
     private async conferenceScreenshot(): Promise<string> {
@@ -534,36 +561,32 @@ class NoteService {
     }
 
     async downloadFile() {
-        this.browser = await chromium.launch({ headless: false, slowMo: 500, })
-        this.context = await this.browser.newContext({ ignoreHTTPSErrors: true, acceptDownloads: true })
-        this.page = await this.context.newPage()
-        
         try {
+            this.browser = await chromium.launch({ headless: false, slowMo: 500, })
+            this.context = await this.browser.newContext({ ignoreHTTPSErrors: true, acceptDownloads: true })
+            this.page = await this.context.newPage()
+            
             if (!this.note.linkDownload) {
                 logger.info('Link de download não disponível.')
                 return
             }
 
-            await this.page.goto(this.note.linkDownload, { waitUntil: 'domcontentloaded' })
+            await this.page.goto(this.note.linkDownload, { waitUntil: 'domcontentloaded', timeout: 60000 })
 
-            // Aguarda a tabela estar visível
             await this.page.waitForSelector('table.tablesorter tbody tr')
 
             let line
 
             if (this.note.fileName) {
-                // Localiza a linha que contém o nome do arquivo
                 line = this.page.locator(`table.tablesorter tbody tr:has(td.col-arquivo:has-text("${this.note.fileName}"))`)
                 if (await line.count() === 0) {
                     logger.info(`Arquivo "${this.note.fileName}" não encontrado na tabela.`)
                     return null
                 }
             } else {
-                // Se não passar o nome, pega a primeira linha
                 line = this.page.locator('table.tablesorter tbody tr').first()
             }
 
-            // Pega o link de download
             const linkDownload = await line.locator('.col-acoes a.btn-info').getAttribute('href')
 
             if (!linkDownload) {
@@ -571,10 +594,9 @@ class NoteService {
                 return null
             }
 
-            // Configura o listener para o evento de download
             const [download] = await Promise.all([
                 this.page.waitForEvent('download'),
-                line.locator('.col-acoes a.btn-info').click() // clica no botão de download
+                line.locator('.col-acoes a.btn-info').click()
             ])
 
             const pathRelativeNote = this.getStructure()
@@ -603,9 +625,17 @@ class NoteService {
             }
 
             logger.info(pathRelativeAbsolute)
+
+        } catch (error) {
+            logger.error(`Erro inesperado no processo downloadFile: ${error}`)
         } finally {
-            await this.page.close()
-            await this.browser.close()
+            logger.info("Finalizando processo downloadFile e fechando o navegador.")
+            if (this.page && !this.page.isClosed()) {
+                await this.page.close()
+            }
+            if (this.browser && this.browser.isConnected()) {
+                await this.browser.close()
+            }
         }
     }
 }
