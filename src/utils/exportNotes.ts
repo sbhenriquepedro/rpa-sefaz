@@ -9,7 +9,9 @@ export class exportNotes {
     async run() {
         try {
             // Buscar todas as notas
-            const notes = await Note.find()
+            const notes = await Note.find({
+                statusNote: "Success"
+            })
     
             // Buscar todas as empresas referenciadas de uma vez só
             const companyIds = [...new Set(notes.map((note: any) => note.company?.toString()).filter(Boolean))]
@@ -29,7 +31,6 @@ export class exportNotes {
                 { header: "Período Inicial", key: "initialPeriod", width: 15 },
                 { header: "Período Final", key: "finalPeriod", width: 15 },
                 { header: "Arquivo", key: "fileName", width: 40 },
-                { header: "Qtd Notas", key: "quantityNotes", width: 10 },
             ]
     
             notes.forEach((note: any) => {
