@@ -70,6 +70,10 @@ export function getPeriodDates(): Period[] {
                 logger.info(`Adicionado período: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}`)
             }
         }
+    }
+
+    if (!hasYearMonthRange && !hasDaysDownload) {
+        logger.info("Calculando período padrão, pois nenhuma configuração específica foi encontrada...")
 
         const daysDownloadInitial = [1, 2, 3, 4, 5]
         if (daysDownloadInitial.includes(currentDay)) {
@@ -77,19 +81,16 @@ export function getPeriodDates(): Period[] {
             const finalPeriod = new Date(currentYear, currentMonth, 0)
             periods.push({ initialPeriod, finalPeriod })
 
-            logger.info(`Adicionado período inicial: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toISOString()}`)
+            logger.info(`Adicionado período inicial: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}`)
+        } else {
+            const initialPeriod = new Date(currentYear, currentMonth, 1)
+            const finalPeriod = currentDay > 1
+                ? new Date(currentYear, currentMonth, currentDay - 1)
+                : new Date(currentYear, currentMonth, 1)
+    
+            periods.push({ initialPeriod, finalPeriod })
+            logger.info(`Adicionado período padrão: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}`)
         }
-    }
-
-    if (!hasYearMonthRange && !hasDaysDownload) {
-        logger.info("Calculando período padrão, pois nenhuma configuração específica foi encontrada...")
-        const initialPeriod = new Date(currentYear, currentMonth, 1)
-        const finalPeriod = currentDay > 1
-            ? new Date(currentYear, currentMonth, currentDay - 1)
-            : new Date(currentYear, currentMonth, 1)
-
-        periods.push({ initialPeriod, finalPeriod })
-        logger.info(`Adicionado período padrão: ${initialPeriod.toLocaleDateString()} - ${finalPeriod.toLocaleDateString()}`)
     }
 
     logger.info("Cálculo dos períodos concluído.")
